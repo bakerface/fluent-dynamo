@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var pkg = require('./package.json');
+
+pkg.version = process.argv.slice(2).join(' ');
+fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
+

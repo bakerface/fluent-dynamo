@@ -3,6 +3,22 @@ var should = require('should');
 var dynamo = require('../lib/dynamo.js');
 
 describe('dynamo.createTable(name)', function() {
+  var app;
+
+  beforeEach(function(done) {
+    app = dynalite({
+      createTableMs: 0,
+      deleteTableMs: 0,
+      updateTableMs: 0
+    });
+
+    app.listen(4567, done);
+  })
+
+  afterEach(function(done) {
+    app.close(done);
+  })
+
   it('should reject if table name is invalid length', function(done) {
     dynamo.createTable('no')
       .catch(function(reason) {
@@ -290,66 +306,54 @@ describe('dynamo.createTable(name)', function() {
   })
 
   it('should handle successful responses', function(done) {
-    var app = dynalite();
+    dynamo.createTable('Thread')
+      .withEndpoint('http://localhost:4567')
+      .withRegion('us-east-1')
+      .withAccessKeyId('access')
+      .withSecretAccessKey('secret')
+      .withHashKey('ForumName', 'S')
+      .withRangeKey('Subject', 'S')
+      .withReadCapacity(1)
+      .withWriteCapacity(1)
+      .then(function(response) {
+        should(response.TableDescription.AttributeDefinitions).eql([
+          { AttributeName: 'ForumName', AttributeType: 'S' },
+          { AttributeName: 'Subject', AttributeType: 'S' }
+        ]);
 
-    app.listen(4567, function(err) {
-      if (err) return done(err);
+        should(response.TableDescription.TableName).eql('Thread');
+        should(response.TableDescription.ItemCount).eql(0);
+        should(response.TableDescription.TableSizeBytes).eql(0);
+        should(response.TableDescription.TableStatus).eql('CREATING');
 
-      dynamo.createTable('Thread')
-        .withEndpoint('http://localhost:4567')
-        .withRegion('us-east-1')
-        .withAccessKeyId('access')
-        .withSecretAccessKey('secret')
-        .withHashKey('ForumName', 'S')
-        .withRangeKey('Subject', 'S')
-        .withReadCapacity(1)
-        .withWriteCapacity(1)
-        .then(function(response) {
-          should(response.TableDescription.AttributeDefinitions).eql([
-            { AttributeName: 'ForumName', AttributeType: 'S' },
-            { AttributeName: 'Subject', AttributeType: 'S' }
-          ]);
+        should(response.TableDescription.KeySchema).eql([
+          { AttributeName: 'ForumName', KeyType: 'HASH' },
+          { AttributeName: 'Subject', KeyType: 'RANGE' }
+        ]);
 
-          should(response.TableDescription.TableName).eql('Thread');
-          should(response.TableDescription.ItemCount).eql(0);
-          should(response.TableDescription.TableSizeBytes).eql(0);
-          should(response.TableDescription.TableStatus).eql('CREATING');
-
-          should(response.TableDescription.KeySchema).eql([
-            { AttributeName: 'ForumName', KeyType: 'HASH' },
-            { AttributeName: 'Subject', KeyType: 'RANGE' }
-          ]);
-
-          should(response.TableDescription.ProvisionedThroughput).eql({
-            NumberOfDecreasesToday: 0,
-            ReadCapacityUnits: 1,
-            WriteCapacityUnits: 1
-          });
-
-          app.close(done);
+        should(response.TableDescription.ProvisionedThroughput).eql({
+          NumberOfDecreasesToday: 0,
+          ReadCapacityUnits: 1,
+          WriteCapacityUnits: 1
         });
-    });
+
+        done();
+      });
   })
 
   it('should handle failed responses', function(done) {
-    var app = dynalite();
-
-    app.listen(4567, function(err) {
-      if (err) return done(err);
-
-      dynamo.createTable('Thread')
-        .withEndpoint('http://localhost:4567')
-        .withRegion('us-east-1')
-        .withAccessKeyId('access')
-        .withSecretAccessKey('secret')
-        .withHashKey('ForumName', 'S')
-        .withRangeKey('ForumName', 'S')
-        .withReadCapacity(1)
-        .withWriteCapacity(1)
-        .catch(function(reason) {
-          should(reason.code).eql('ValidationException');
-          app.close(done);
-        });
-    });
+    dynamo.createTable('Thread')
+      .withEndpoint('http://localhost:4567')
+      .withRegion('us-east-1')
+      .withAccessKeyId('access')
+      .withSecretAccessKey('secret')
+      .withHashKey('ForumName', 'S')
+      .withRangeKey('ForumName', 'S')
+      .withReadCapacity(1)
+      .withWriteCapacity(1)
+      .catch(function(reason) {
+        should(reason.code).eql('ValidationException');
+        done();
+      });
   })
 })

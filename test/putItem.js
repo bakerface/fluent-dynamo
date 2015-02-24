@@ -6,7 +6,12 @@ describe('dynamo.putItem(table)', function() {
   var app;
 
   beforeEach(function(done) {
-    app = dynalite({ createTableMs: 0 });
+    app = dynalite({
+      createTableMs: 0,
+      deleteTableMs: 0,
+      updateTableMs: 0
+    });
+
     app.listen(4567, done);
   })
 

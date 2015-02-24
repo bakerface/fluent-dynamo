@@ -6,7 +6,7 @@ describe('dynamo.putItem(table)', function() {
   var app;
 
   beforeEach(function(done) {
-    app = dynalite();
+    app = dynalite({ createTableMs: 0 });
     app.listen(4567, done);
   })
 
@@ -155,7 +155,6 @@ describe('dynamo.putItem(table)', function() {
       .withRangeKey('Subject', 'S')
       .withReadCapacity(1)
       .withWriteCapacity(1)
-      .delay(500)
       .then(function() {
         return dynamo.putItem('Thread')
           .withEndpoint('http://localhost:4567')

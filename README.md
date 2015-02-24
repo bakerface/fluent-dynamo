@@ -26,3 +26,22 @@ dynamo.createTable('Thread')
     // an error occurred
   });
 ```
+
+### [putItem](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html)
+
+``` javascript
+var dynamo = require('fluent-dynamo');
+
+dynamo.putItem('Thread')
+  .withRegion('us-east-1')
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY')
+  .withAttribute('ForumName', 'S', 'Amazon')
+  .withAttribute('Subject', 'S', 'How do I update multiple items?')
+  .then(function() {
+    // the item was inserted into the database
+  })
+  .catch(function(reason) {
+    // an error occurred
+  });
+```

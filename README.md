@@ -45,3 +45,23 @@ dynamo.putItem('Thread')
     // an error occurred
   });
 ```
+
+### [query](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html)
+
+``` javascript
+var dynamo = require('fluent-dynamo');
+
+dynamo.query('Thread')
+  .withRegion('us-east-1')
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY')
+  .withComparison('ForumName', 'EQ', 'S', 'Amazon')
+  .withLimit(10)
+  .then(function(items) {
+    // the array of items
+    // pagination is handled for you
+  })
+  .catch(function(reason) {
+    // an error occurred
+  });
+```

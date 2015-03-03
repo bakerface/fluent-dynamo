@@ -82,3 +82,38 @@ dynamo.deleteItem('Thread')
     // an error occurred
   });
 ```
+
+### dynamo.query(table)
+Searches for items in the table (see [Query](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html)). Below is an example of querying for an item by a specific hash key and range key.
+
+``` javascript
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
+
+dynamo.query('Thread')
+  .withConsistentRead()
+  .withCondition('ForumName').isEqualToString('Amazon')
+  .then(function(items) {
+    // the items were found and are in the following format:
+
+    // items = [
+    //   {
+    //     ForumName: 'Amazon',
+    //     Subject: 'DynamoDB',
+    //     PostCount: 100
+    //   },
+    //   {
+    //     ForumName: 'Amazon',
+    //     Subject: 'Elastic Beanstalk',
+    //     PostCount: 50
+    //   }
+    // ];
+  })
+  .catch(function(reason) {
+    // an error occurred
+  });
+```

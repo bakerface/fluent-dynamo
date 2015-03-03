@@ -68,7 +68,7 @@ describe('dynamo.putItem(table)', function() {
           ForumName: { S: 'Amazon' },
           Subject: { S: 'DynamoDB' },
           LastPostDateTime: { S: '201303190422' },
-          PostCount: { N: 100 }
+          PostCount: { N: '100' }
         },
         TableName: 'Thread'
       });

@@ -1,65 +1,34 @@
 # fluent-dynamo
 **A fluent interface for Amazon DynamoDB in Node.js**
 
-### [createTable](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html)
+### dynamo.createTable(name)
+Creates a table with the specified configuration (see [CreateTable](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html)). Below is an example of creating a table with a global secondary index and a local secondary index.
 
 ``` javascript
-var dynamo = require('fluent-dynamo');
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
 
 dynamo.createTable('Thread')
-  .withRegion('us-east-1')
-  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
-  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY')
-  .withHashKey('ForumName', 'S')
-  .withRangeKey('Subject', 'S')
-  .withAttribute('LastPostDateTime', 'S')
-  .withLocalSecondaryIndex('LastPostIndex')
-    .withHashKey('ForumName')
-    .withRangeKey('LastPostDateTime')
-    .withKeysOnlyProjection()
+  .withHashKey('ForumName').asString()
+  .withRangeKey('Subject').asString()
   .withReadCapacity(5)
   .withWriteCapacity(5)
+  .withGlobalSecondaryIndex('PostCountIndex')
+    .withHashKey('ForumName').asString()
+    .withRangeKey('PostCount').asNumber()
+    .withReadCapacity(1)
+    .withWriteCapacity(1)
+    .withAllAttributesProjection()
+  .withLocalSecondaryIndex('LastPostIndex')
+    .withHashKey('ForumName').asString()
+    .withRangeKey('LastPostDateTime').asString()
+    .withKeysOnlyProjection()
   .then(function() {
     // the table was created
-  })
-  .catch(function(reason) {
-    // an error occurred
-  });
-```
-
-### [putItem](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html)
-
-``` javascript
-var dynamo = require('fluent-dynamo');
-
-dynamo.putItem('Thread')
-  .withRegion('us-east-1')
-  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
-  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY')
-  .withAttribute('ForumName', 'S', 'Amazon')
-  .withAttribute('Subject', 'S', 'How do I update multiple items?')
-  .then(function() {
-    // the item was inserted into the database
-  })
-  .catch(function(reason) {
-    // an error occurred
-  });
-```
-
-### [query](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html)
-
-``` javascript
-var dynamo = require('fluent-dynamo');
-
-dynamo.query('Thread')
-  .withRegion('us-east-1')
-  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
-  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY')
-  .withComparison('ForumName', 'EQ', 'S', 'Amazon')
-  .withLimit(10)
-  .then(function(items) {
-    // the array of items
-    // pagination is handled for you
   })
   .catch(function(reason) {
     // an error occurred

@@ -1,359 +1,148 @@
-var dynalite = require('dynalite');
+/**
+ * Copyright (c) 2015 Christopher M. Baker
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+var fluent = require('..');
 var should = require('should');
-var dynamo = require('../lib/dynamo.js');
 
 describe('dynamo.createTable(name)', function() {
-  var app;
+  var aws, dynamo;
 
-  beforeEach(function(done) {
-    app = dynalite({
-      createTableMs: 0,
-      deleteTableMs: 0,
-      updateTableMs: 0
-    });
+  beforeEach(function() {
+    aws = { };
 
-    app.listen(4567, done);
-  })
-
-  afterEach(function(done) {
-    app.close(done);
-  })
-
-  it('should reject if table name is invalid length', function(done) {
-    dynamo.createTable('no')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The table name must be between 3 and 255 characters',
-          name: 'TableNameInvalidLengthError',
-          property: 'table-name'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if endpoint is invalid', function(done) {
-    dynamo.createTable('Thread')
-      .withEndpoint('INVALID')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified endpoint is not a valid URL',
-          name: 'EndpointInvalidError',
-          property: 'endpoint'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if region is invalid', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('INVALID')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified region is not a valid region',
-          name: 'RegionInvalidError',
-          property: 'region'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if access key id is null', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId()
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The access key id cannot be null',
-          name: 'AccessKeyIdNullError',
-          property: 'access-key-id'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if secret access key is null', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
+    dynamo = fluent(aws)
       .withAccessKeyId('access')
-      .withSecretAccessKey()
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The secret access key cannot be null',
-          name: 'SecretAccessKeyNullError',
-          property: 'secret-access-key'
-        });
-
-        done();
-      });
+      .withEndpoint('endpoint')
+      .withRegion('region')
+      .withSecretAccessKey('secret');
   })
 
-  it('should reject if hash key is undefined', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'A table must have exactly one hash key',
-          name: 'HashKeyUndefinedError',
-          property: 'hash-key'
-        });
+  function createTable() {
+    return dynamo.createTable('Thread')
+      .withHashKey('ForumName').asString()
+      .withRangeKey('Subject').asString()
+      .withReadCapacity(5)
+      .withWriteCapacity(5)
+      .withGlobalSecondaryIndex('PostCountIndex')
+        .withHashKey('ForumName').asString()
+        .withRangeKey('PostCount').asNumber()
+        .withReadCapacity(1)
+        .withWriteCapacity(1)
+        .withAllAttributesProjection()
+      .withLocalSecondaryIndex('LastPostIndex')
+        .withHashKey('ForumName').asString()
+        .withRangeKey('LastPostDateTime').asString()
+        .withKeysOnlyProjection();
+  }
 
-        done();
+  it('should create the table', function(done) {
+    aws.DynamoDB = function(options) {
+      should(options).eql({
+        accessKeyId: 'access',
+        endpoint: 'endpoint',
+        region: 'region',
+        secretAccessKey: 'secret'
       });
-  })
+    };
 
-  it('should reject if hash key is null', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey()
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The hash key cannot be null',
-          name: 'HashKeyNullError',
-          property: 'hash-key'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if hash key type is invalid', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'INVALID')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified hash key type is not a valid type',
-          name: 'HashKeyInvalidTypeError',
-          property: 'hash-key'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if multiple hash keys are defined', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withHashKey('INVALID', 'S')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'A table must have exactly one hash key',
-          name: 'MultipleHashKeyError',
-          property: 'hash-key'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if range key is null', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey()
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The range key cannot be null',
-          name: 'RangeKeyNullError',
-          property: 'range-key'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if range key type is invalid', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('Subject', 'INVALID')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified range key type is not a valid type',
-          name: 'RangeKeyInvalidTypeError',
-          property: 'range-key'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if multiple range keys are defined', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('Subject', 'S')
-      .withRangeKey('INVALID', 'S')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'A table must have no more than one range key',
-          name: 'MultipleRangeKeyError',
-          property: 'range-key'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if read capacity is undefined', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The provisioned read capacity must be defined',
-          name: 'ReadCapacityUndefinedError',
-          property: 'read-capacity'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if read capacity is invalid', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('Subject', 'S')
-      .withReadCapacity(0)
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The provisioned read capacity must be greater than zero',
-          name: 'ReadCapacityInvalidError',
-          property: 'read-capacity'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if write capacity is undefined', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('Subject', 'S')
-      .withReadCapacity(1)
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The provisioned write capacity must be defined',
-          name: 'WriteCapacityUndefinedError',
-          property: 'write-capacity'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if write capacity is invalid', function(done) {
-    dynamo.createTable('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('Subject', 'S')
-      .withReadCapacity(1)
-      .withWriteCapacity(0)
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The provisioned write capacity must be greater than zero',
-          name: 'WriteCapacityInvalidError',
-          property: 'write-capacity'
-        });
-
-        done();
-      });
-  })
-
-  it('should handle successful responses', function(done) {
-    dynamo.createTable('Thread')
-      .withEndpoint('http://localhost:4567')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('Subject', 'S')
-      .withReadCapacity(1)
-      .withWriteCapacity(1)
-      .then(function(response) {
-        should(response.TableDescription.AttributeDefinitions).eql([
+    aws.DynamoDB.prototype.createTable = function(options, callback) {
+      should(options).eql({
+        AttributeDefinitions: [
           { AttributeName: 'ForumName', AttributeType: 'S' },
-          { AttributeName: 'Subject', AttributeType: 'S' }
-        ]);
-
-        should(response.TableDescription.TableName).eql('Thread');
-        should(response.TableDescription.ItemCount).eql(0);
-        should(response.TableDescription.TableSizeBytes).eql(0);
-        should(response.TableDescription.TableStatus).eql('CREATING');
-
-        should(response.TableDescription.KeySchema).eql([
+          { AttributeName: 'Subject', AttributeType: 'S' },
+          { AttributeName: 'PostCount', AttributeType: 'N' },
+          { AttributeName: 'LastPostDateTime', AttributeType: 'S' }
+        ],
+        GlobalSecondaryIndexes: [
+          {
+            IndexName: 'PostCountIndex',
+            KeySchema: [
+              { AttributeName: 'ForumName', KeyType: 'HASH' },
+              { AttributeName: 'PostCount', KeyType: 'RANGE' }
+            ],
+            Projection: { ProjectionType: 'ALL' },
+            ProvisionedThroughput: {
+              ReadCapacityUnits: 1,
+              WriteCapacityUnits: 1
+            }
+          }
+        ],
+        KeySchema: [
           { AttributeName: 'ForumName', KeyType: 'HASH' },
           { AttributeName: 'Subject', KeyType: 'RANGE' }
-        ]);
-
-        should(response.TableDescription.ProvisionedThroughput).eql({
-          NumberOfDecreasesToday: 0,
-          ReadCapacityUnits: 1,
-          WriteCapacityUnits: 1
-        });
-
-        done();
+        ],
+        LocalSecondaryIndexes: [
+          {
+            IndexName: 'LastPostIndex',
+            KeySchema: [
+              { AttributeName: 'ForumName', KeyType: 'HASH' },
+              { AttributeName: 'LastPostDateTime', KeyType: 'RANGE' }
+            ],
+            Projection: { ProjectionType: 'KEYS_ONLY' }
+          }
+        ],
+        ProvisionedThroughput: {
+          ReadCapacityUnits: 5,
+          WriteCapacityUnits: 5
+        },
+        TableName: 'Thread'
       });
+
+      done();
+    };
+
+    createTable();
   })
 
-  it('should handle failed responses', function(done) {
-    dynamo.createTable('Thread')
-      .withEndpoint('http://localhost:4567')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('ForumName', 'S')
-      .withReadCapacity(1)
-      .withWriteCapacity(1)
-      .catch(function(reason) {
-        should(reason.code).eql('ValidationException');
+  describe('when the request fails', function() {
+    beforeEach(function() {
+      aws.DynamoDB = function() { };
+      aws.DynamoDB.prototype.createTable = function(request, callback) {
+        callback('failure');
+      };
+    })
+
+    it('should throw an error', function(done) {
+      createTable().catch(function(reason) {
+        should(reason).eql('failure');
         done();
       });
+    })
+  })
+
+  describe('when the request succeeds', function() {
+    beforeEach(function() {
+      aws.DynamoDB = function() { };
+      aws.DynamoDB.prototype.createTable = function(request, callback) {
+        callback(null, 'success');
+      };
+    })
+
+    it('should throw an error', function(done) {
+      createTable().then(function(response) {
+        should(response).eql('success');
+        done();
+      });
+    })
   })
 })

@@ -24,7 +24,7 @@
 var fluent = require('..');
 var should = require('should');
 
-describe('dynamo.createTable(name)', function() {
+describe('dynamo.createTable(table)', function() {
   var aws, dynamo;
 
   beforeEach(function() {
@@ -138,7 +138,7 @@ describe('dynamo.createTable(name)', function() {
       };
     })
 
-    it('should throw an error', function(done) {
+    it('should return the response', function(done) {
       createTable().then(function(response) {
         should(response).eql('success');
         done();

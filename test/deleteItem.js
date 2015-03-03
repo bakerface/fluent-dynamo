@@ -24,7 +24,7 @@
 var fluent = require('..');
 var should = require('should');
 
-describe('dynamo.putItem(table)', function() {
+describe('dynamo.deleteItem(table)', function() {
   var aws, dynamo;
 
   beforeEach(function() {
@@ -37,17 +37,13 @@ describe('dynamo.putItem(table)', function() {
       .withSecretAccessKey('secret');
   })
 
-  function putItem() {
-    return dynamo.putItem('Thread')
-      .withAttribute('ForumName').asString('Amazon')
-      .withAttribute('Subject').asString('DynamoDB')
-      .withAttribute('LastPostDateTime').asString('201303190422')
-      .withAttribute('PostCount').asNumber(100)
-      .withCondition('ForumName').isNotEqualToString('Amazon')
-      .withCondition('Subject').isNotEqualToString('DynamoDB');
+  function deleteItem() {
+    return dynamo.deleteItem('Thread')
+      .withHashKey('ForumName').asString('Amazon')
+      .withRangeKey('Subject').asString('DynamoDB');
   }
 
-  it('should put the item', function(done) {
+  it('should delete the item', function(done) {
     aws.DynamoDB = function(options) {
       should(options).eql({
         accessKeyId: 'access',
@@ -57,18 +53,11 @@ describe('dynamo.putItem(table)', function() {
       });
     };
 
-    aws.DynamoDB.prototype.putItem = function(options, callback) {
+    aws.DynamoDB.prototype.deleteItem = function(options, callback) {
       should(options).eql({
-        ConditionExpression: 'ForumName <> :v0 and Subject <> :v1',
-        ExpressionAttributeValues: {
-          ':v0': { S: 'Amazon' },
-          ':v1': { S: 'DynamoDB' }
-        },
-        Item: {
+        Key: {
           ForumName: { S: 'Amazon' },
           Subject: { S: 'DynamoDB' },
-          LastPostDateTime: { S: '201303190422' },
-          PostCount: { N: '100' }
         },
         TableName: 'Thread'
       });
@@ -76,19 +65,19 @@ describe('dynamo.putItem(table)', function() {
       done();
     };
 
-    putItem();
+    deleteItem();
   })
 
   describe('when the request fails', function() {
     beforeEach(function() {
       aws.DynamoDB = function() { };
-      aws.DynamoDB.prototype.putItem = function(request, callback) {
+      aws.DynamoDB.prototype.deleteItem = function(request, callback) {
         callback('failure');
       };
     })
 
     it('should throw an error', function(done) {
-      putItem().catch(function(reason) {
+      deleteItem().catch(function(reason) {
         should(reason).eql('failure');
         done();
       });
@@ -98,13 +87,13 @@ describe('dynamo.putItem(table)', function() {
   describe('when the request succeeds', function() {
     beforeEach(function() {
       aws.DynamoDB = function() { };
-      aws.DynamoDB.prototype.putItem = function(request, callback) {
+      aws.DynamoDB.prototype.deleteItem = function(request, callback) {
         callback(null, 'success');
       };
     })
 
     it('should return the response', function(done) {
-      putItem().then(function(response) {
+      deleteItem().then(function(response) {
         should(response).eql('success');
         done();
       });

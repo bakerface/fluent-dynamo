@@ -1,24 +1,32 @@
 # fluent-dynamo
 **A fluent interface for Amazon DynamoDB in Node.js**
 
-### [createTable](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html)
+### dynamo.createTable(table)
+Creates a table with the specified configuration (see [CreateTable](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html)). Below is an example of creating a table with a global secondary index and a local secondary index.
 
 ``` javascript
-var dynamo = require('fluent-dynamo');
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
 
 dynamo.createTable('Thread')
-  .withRegion('us-east-1')
-  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
-  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY')
-  .withHashKey('ForumName', 'S')
-  .withRangeKey('Subject', 'S')
-  .withAttribute('LastPostDateTime', 'S')
-  .withLocalSecondaryIndex('LastPostIndex')
-    .withHashKey('ForumName')
-    .withRangeKey('LastPostDateTime')
-    .withKeysOnlyProjection()
+  .withHashKey('ForumName').asString()
+  .withRangeKey('Subject').asString()
   .withReadCapacity(5)
   .withWriteCapacity(5)
+  .withGlobalSecondaryIndex('PostCountIndex')
+    .withHashKey('ForumName').asString()
+    .withRangeKey('PostCount').asNumber()
+    .withReadCapacity(1)
+    .withWriteCapacity(1)
+    .withAllAttributesProjection()
+  .withLocalSecondaryIndex('LastPostIndex')
+    .withHashKey('ForumName').asString()
+    .withRangeKey('LastPostDateTime').asString()
+    .withKeysOnlyProjection()
   .then(function() {
     // the table was created
   })
@@ -27,39 +35,83 @@ dynamo.createTable('Thread')
   });
 ```
 
-### [putItem](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html)
+### dynamo.putItem(table)
+Creates a new item or replaces an existing item in the table (see [PutItem](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html)). Below is an example of inserting an item with attribute conditions.
 
 ``` javascript
-var dynamo = require('fluent-dynamo');
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
 
 dynamo.putItem('Thread')
-  .withRegion('us-east-1')
-  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
-  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY')
-  .withAttribute('ForumName', 'S', 'Amazon')
-  .withAttribute('Subject', 'S', 'How do I update multiple items?')
+  .withAttribute('ForumName').asString('Amazon')
+  .withAttribute('Subject').asString('DynamoDB')
+  .withAttribute('LastPostDateTime').asString('201303190422')
+  .withAttribute('PostCount').asNumber(100)
+  .withCondition('ForumName').isNotEqualToString('Amazon')
+  .withCondition('Subject').isNotEqualToString('DynamoDB');
   .then(function() {
-    // the item was inserted into the database
+    // the item was inserted into the table
   })
   .catch(function(reason) {
     // an error occurred
   });
 ```
 
-### [query](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html)
+### dynamo.deleteItem(table)
+Deletes an item in the table (see [DeleteItem](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DeleteItem.html)). Below is an example of deleting an item with a specific hash key and range key.
 
 ``` javascript
-var dynamo = require('fluent-dynamo');
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
+
+dynamo.deleteItem('Thread')
+  .withHashKey('ForumName').asString('Amazon')
+  .withRangeKey('Subject').asString('DynamoDB')
+  .then(function() {
+    // the item was deleted from the table
+  })
+  .catch(function(reason) {
+    // an error occurred
+  });
+```
+
+### dynamo.query(table)
+Searches for items in the table (see [Query](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html)). Below is an example of querying for an item by a specific hash key.
+
+``` javascript
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
 
 dynamo.query('Thread')
-  .withRegion('us-east-1')
-  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
-  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY')
-  .withComparison('ForumName', 'EQ', 'S', 'Amazon')
-  .withLimit(10)
+  .withConsistentRead()
+  .withCondition('ForumName').isEqualToString('Amazon')
   .then(function(items) {
-    // the array of items
-    // pagination is handled for you
+    // the items were found and are in the following format:
+
+    // items = [
+    //   {
+    //     ForumName: 'Amazon',
+    //     Subject: 'DynamoDB',
+    //     PostCount: 100
+    //   },
+    //   {
+    //     ForumName: 'Amazon',
+    //     Subject: 'Elastic Beanstalk',
+    //     PostCount: 50
+    //   }
+    // ];
   })
   .catch(function(reason) {
     // an error occurred

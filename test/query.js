@@ -1,286 +1,208 @@
-var dynalite = require('dynalite');
+/**
+ * Copyright (c) 2015 Christopher M. Baker
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+var fluent = require('..');
 var should = require('should');
-var dynamo = require('../lib/dynamo.js');
 
 describe('dynamo.query(table)', function() {
-  var app;
+  var aws, dynamo;
 
-  beforeEach(function(done) {
-    app = dynalite({
-      createTableMs: 0,
-      deleteTableMs: 0,
-      updateTableMs: 0
-    });
+  beforeEach(function() {
+    aws = { };
 
-    app.listen(4567, done);
-  })
-
-  afterEach(function(done) {
-    app.close(done);
-  })
-
-  it('should reject if table name is invalid length', function(done) {
-    dynamo.query('no')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The table name must be between 3 and 255 characters',
-          name: 'TableNameInvalidLengthError',
-          property: 'table-name'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if endpoint is invalid', function(done) {
-    dynamo.query('Thread')
-      .withEndpoint('INVALID')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified endpoint is not a valid URL',
-          name: 'EndpointInvalidError',
-          property: 'endpoint'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if region is invalid', function(done) {
-    dynamo.query('Thread')
-      .withRegion('INVALID')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified region is not a valid region',
-          name: 'RegionInvalidError',
-          property: 'region'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if access key id is null', function(done) {
-    dynamo.query('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId()
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The access key id cannot be null',
-          name: 'AccessKeyIdNullError',
-          property: 'access-key-id'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if secret access key is null', function(done) {
-    dynamo.query('Thread')
-      .withRegion('us-east-1')
+    dynamo = fluent(aws)
       .withAccessKeyId('access')
-      .withSecretAccessKey()
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The secret access key cannot be null',
-          name: 'SecretAccessKeyNullError',
-          property: 'secret-access-key'
-        });
-
-        done();
-      });
+      .withEndpoint('endpoint')
+      .withRegion('region')
+      .withSecretAccessKey('secret');
   })
 
-  it('should reject if comparison name is null', function(done) {
-    dynamo.query('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withComparison()
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The comparison cannot be null',
-          name: 'ComparisonNullError',
-          property: 'comparison'
-        });
+  function query() {
+    return dynamo.query('Thread')
+      .withConsistentRead()
+      .withCondition('ForumName').isEqualToString('Amazon')
+      .withCondition('Subject').isEqualToString('DynamoDB');
+  }
 
-        done();
+  it('should delete the item', function(done) {
+    aws.DynamoDB = function(options) {
+      should(options).eql({
+        accessKeyId: 'access',
+        endpoint: 'endpoint',
+        region: 'region',
+        secretAccessKey: 'secret'
       });
+    };
+
+    aws.DynamoDB.prototype.query = function(options, callback) {
+      should(options).eql({
+        ConsistentRead: true,
+        KeyConditions: {
+          ForumName: {
+            AttributeValueList: [
+              { S: 'Amazon' }
+            ],
+            ComparisonOperator: 'EQ'
+          },
+          Subject: {
+            AttributeValueList: [
+              { S: 'DynamoDB' }
+            ],
+            ComparisonOperator: 'EQ'
+          }
+        },
+        TableName: 'Thread'
+      });
+
+      done();
+    };
+
+    query();
   })
 
-  it('should reject if comparison operator is invalid', function(done) {
-    dynamo.query('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withComparison('ForumName', 'INVALID', 'S', 'Amazon')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified comparison operator is not a valid operator',
-          name: 'ComparisonInvalidOperatorError',
-          property: 'ForumName'
-        });
+  describe('when the request fails', function() {
+    beforeEach(function() {
+      aws.DynamoDB = function() { };
+      aws.DynamoDB.prototype.query = function(request, callback) {
+        callback('failure');
+      };
+    })
 
+    it('should throw an error', function(done) {
+      query().catch(function(reason) {
+        should(reason).eql('failure');
         done();
       });
+    })
   })
 
-  it('should reject if comparison type is invalid', function(done) {
-    dynamo.query('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withComparison('ForumName', 'EQ', 'INVALID', 'Amazon')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified comparison type is not a valid type',
-          name: 'ComparisonInvalidTypeError',
-          property: 'ForumName'
+  describe('when the request succeeds', function() {
+    beforeEach(function() {
+      aws.DynamoDB = function() { };
+      aws.DynamoDB.prototype.query = function(request, callback) {
+        callback(null, {
+          Items: [
+            {
+              ForumName: { S: 'Amazon' },
+              Subject: { S: 'DynamoDB' },
+              PostCount: { N: '100' }
+            },
+            {
+              ForumName: { S: 'Amazon' },
+              Subject: { S: 'Elastic Beanstalk' },
+              PostCount: { N: '50' }
+            }
+          ]
         });
+      };
+    })
 
-        done();
-      });
-  })
-
-  it('should reject if comparison value is undefined', function(done) {
-    dynamo.query('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withComparison('ForumName', 'EQ', 'S')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The comparison value must be defined',
-          name: 'ComparisonValueUndefinedError',
-          property: 'ForumName'
-        });
-
-        done();
-      });
-  })
-
-  it('should reject if limit is invalid', function(done) {
-    dynamo.query('Thread')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withComparison('ForumName', 'EQ', 'S', 'Amazon')
-      .withLimit('INVALID')
-      .catch(function(reason) {
-        should(reason).eql({
-          kind: 'error#input-validation',
-          message: 'The specified limit is invalid',
-          name: 'LimitInvalidError',
-          property: 'limit'
-        });
-
-        done();
-      });
-  })
-
-  it('should handle successful responses', function(done) {
-    dynamo.createTable('Thread')
-      .withEndpoint('http://localhost:4567')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('Subject', 'S')
-      .withReadCapacity(1)
-      .withWriteCapacity(1)
-      .then(function() {
-        return dynamo.putItem('Thread')
-          .withEndpoint('http://localhost:4567')
-          .withRegion('us-east-1')
-          .withAccessKeyId('access')
-          .withSecretAccessKey('secret')
-          .withAttribute('ForumName', 'S', 'Amazon')
-          .withAttribute('Subject', 'S', 'How do I update multiple items?');
-      })
-      .then(function() {
-        return dynamo.query('Thread')
-          .withEndpoint('http://localhost:4567')
-          .withRegion('us-east-1')
-          .withAccessKeyId('access')
-          .withSecretAccessKey('secret')
-          .withComparison('ForumName', 'EQ', 'S', 'Amazon');
-      })
-      .then(function(response) {
+    it('should return the response', function(done) {
+      query().then(function(response) {
         should(response).eql([
           {
             ForumName: 'Amazon',
-            Subject: 'How do I update multiple items?'
+            Subject: 'DynamoDB',
+            PostCount: 100
+          },
+          {
+            ForumName: 'Amazon',
+            Subject: 'Elastic Beanstalk',
+            PostCount: 50
           }
         ]);
 
         done();
       });
+    })
   })
 
-  it('should handle failed responses', function(done) {
-    return dynamo.query('Thread')
-      .withEndpoint('http://localhost:4567')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withComparison('ForumName', 'EQ', 'S', 'Amazon')
-      .catch(function(reason) {
-        should(reason.code).eql('ResourceNotFoundException');
-        done();
-      });
-  })
+  describe('when a partial response is returned', function() {
+    beforeEach(function() {
+      aws.DynamoDB = function() { };
+      aws.DynamoDB.prototype.query = function(request, callback) {
+        aws.DynamoDB.prototype.query = function(request, callback) {
+          should(request).eql({
+            ConsistentRead: true,
+            ExclusiveStartKey: 'key',
+            KeyConditions: {
+              ForumName: {
+                AttributeValueList: [
+                  { S: 'Amazon' }
+                ],
+                ComparisonOperator: 'EQ'
+              },
+              Subject: {
+                AttributeValueList: [
+                  { S: 'DynamoDB' }
+                ],
+                ComparisonOperator: 'EQ'
+              }
+            },
+            TableName: 'Thread'
+          });
 
-  it('should handle paginated responses', function(done) {
-    function createSubject(index) {
-      return dynamo.putItem('Thread')
-        .withEndpoint('http://localhost:4567')
-        .withRegion('us-east-1')
-        .withAccessKeyId('access')
-        .withSecretAccessKey('secret')
-        .withAttribute('ForumName', 'S', 'Amazon')
-        .withAttribute('Subject', 'S', 'Subject ' + index);
-    }
+          callback(null, {
+            Items: [
+              {
+                ForumName: { S: 'Amazon' },
+                Subject: { S: 'Elastic Beanstalk' },
+                PostCount: { N: '50' }
+              }
+            ]
+          });
+        };
 
-    dynamo.createTable('Thread')
-      .withEndpoint('http://localhost:4567')
-      .withRegion('us-east-1')
-      .withAccessKeyId('access')
-      .withSecretAccessKey('secret')
-      .withHashKey('ForumName', 'S')
-      .withRangeKey('Subject', 'S')
-      .withReadCapacity(1)
-      .withWriteCapacity(1)
-      .then(createSubject.bind(null, 0))
-      .then(createSubject.bind(null, 1))
-      .then(createSubject.bind(null, 2))
-      .then(createSubject.bind(null, 3))
-      .then(function() {
-        return dynamo.query('Thread')
-          .withEndpoint('http://localhost:4567')
-          .withRegion('us-east-1')
-          .withAccessKeyId('access')
-          .withSecretAccessKey('secret')
-          .withComparison('ForumName', 'EQ', 'S', 'Amazon')
-          .withLimit(2);
-      })
-      .then(function(response) {
+        callback(null, {
+          Items: [
+            {
+              ForumName: { S: 'Amazon' },
+              Subject: { S: 'DynamoDB' },
+              PostCount: { N: '100' }
+            }
+          ],
+          LastEvaluatedKey: 'key'
+        });
+      };
+    })
+
+    it('should aggregate the results', function(done) {
+      query().then(function(response) {
         should(response).eql([
-          { ForumName: 'Amazon', Subject: 'Subject 0' },
-          { ForumName: 'Amazon', Subject: 'Subject 1' },
-          { ForumName: 'Amazon', Subject: 'Subject 2' },
-          { ForumName: 'Amazon', Subject: 'Subject 3' }
+          {
+            ForumName: 'Amazon',
+            Subject: 'DynamoDB',
+            PostCount: 100
+          },
+          {
+            ForumName: 'Amazon',
+            Subject: 'Elastic Beanstalk',
+            PostCount: 50
+          }
         ]);
 
         done();
       });
+    })
   })
 })

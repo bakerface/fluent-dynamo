@@ -1,8 +1,8 @@
 {
   "name": "fluent-dynamo",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A fluent interface for Amazon DynamoDB in Node.js",
-  "main": "lib/dynamo.js",
+  "main": "lib/fluent.js",
   "directories": {
     "test": "test"
   },
@@ -26,13 +26,11 @@
   },
   "homepage": "https://github.com/bakerface/fluent-dynamo",
   "devDependencies": {
-    "dynalite": "^0.5.2",
     "mocha": "^2.1.0",
     "should": "^5.0.0"
   },
   "dependencies": {
     "aws-sdk": "^2.1.10",
-    "validator": "^3.30.0",
     "when": "^3.7.2"
   }
 }

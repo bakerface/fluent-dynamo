@@ -54,7 +54,29 @@ dynamo.putItem('Thread')
   .withCondition('ForumName').isNotEqualToString('Amazon')
   .withCondition('Subject').isNotEqualToString('DynamoDB');
   .then(function() {
-    // the item was inserted into the database
+    // the item was inserted into the table
+  })
+  .catch(function(reason) {
+    // an error occurred
+  });
+```
+
+### dynamo.deleteItem(table)
+Deletes an item in the table (see [DeleteItem](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DeleteItem.html)). Below is an example of deleting an item with a specific hash key and range key.
+
+``` javascript
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
+
+dynamo.deleteItem('Thread')
+  .withHashKey('ForumName').asString('Amazon')
+  .withRangeKey('Subject').asString('DynamoDB')
+  .then(function() {
+    // the item was deleted from the table
   })
   .catch(function(reason) {
     // an error occurred

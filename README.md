@@ -84,7 +84,7 @@ dynamo.deleteItem('Thread')
 ```
 
 ### dynamo.query(table)
-Searches for items in the table (see [Query](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html)). Below is an example of querying for an item by a specific hash key and range key.
+Searches for items in the table (see [Query](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html)). Below is an example of querying for an item by a specific hash key.
 
 ``` javascript
 var fluent = require('fluent-dynamo');

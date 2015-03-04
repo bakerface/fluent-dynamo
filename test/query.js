@@ -39,6 +39,7 @@ describe('dynamo.query(table)', function() {
 
   function query() {
     return dynamo.query('Thread')
+      .withIndex('PostCountIndex')
       .withConsistentRead()
       .withCondition('ForumName').isEqualToString('Amazon')
       .withCondition('Subject').isEqualToString('DynamoDB');
@@ -57,6 +58,7 @@ describe('dynamo.query(table)', function() {
     aws.DynamoDB.prototype.query = function(options, callback) {
       should(options).eql({
         ConsistentRead: true,
+        IndexName: 'PostCountIndex',
         KeyConditions: {
           ForumName: {
             AttributeValueList: [
@@ -144,6 +146,7 @@ describe('dynamo.query(table)', function() {
         aws.DynamoDB.prototype.query = function(request, callback) {
           should(request).eql({
             ConsistentRead: true,
+            IndexName: 'PostCountIndex',
             ExclusiveStartKey: 'key',
             KeyConditions: {
               ForumName: {

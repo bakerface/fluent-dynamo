@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/bakerface/fluent-dynamo.svg)](https://travis-ci.org/bakerface/fluent-dynamo) [![Coverage Status](https://coveralls.io/repos/bakerface/fluent-dynamo/badge.svg)](https://coveralls.io/r/bakerface/fluent-dynamo)
+[![Build Status](https://travis-ci.org/bakerface/fluent-dynamo.svg?branch=master)](https://travis-ci.org/bakerface/fluent-dynamo) [![Coverage Status](https://coveralls.io/repos/bakerface/fluent-dynamo/badge.svg?branch=master)](https://coveralls.io/r/bakerface/fluent-dynamo)
 
 # fluent-dynamo
 **A fluent interface for Amazon DynamoDB in Node.js**

@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/bakerface/fluent-dynamo",
   "devDependencies": {
+    "coveralls": "^2.11.2",
     "mocha": "^2.1.0",
     "should": "^5.0.0"
   },

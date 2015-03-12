@@ -1,6 +1,6 @@
 {
   "name": "fluent-dynamo",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A fluent interface for Amazon DynamoDB in Node.js",
   "main": "lib/fluent.js",
   "directories": {
@@ -27,6 +27,7 @@
   "homepage": "https://github.com/bakerface/fluent-dynamo",
   "devDependencies": {
     "coveralls": "^2.11.2",
+    "istanbul": "^0.3.7",
     "mocha": "^2.1.0",
     "should": "^5.0.0"
   },

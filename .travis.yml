@@ -6,8 +6,8 @@ node_js:
   - "0.11"
 
 branches:
-  except:
-    - gh-pages
+  only:
+    - master
 
 script:
   - npm test

@@ -1,7 +1,14 @@
-[![Build Status](https://travis-ci.org/bakerface/fluent-dynamo.svg?branch=master)](https://travis-ci.org/bakerface/fluent-dynamo) [![Coverage Status](https://coveralls.io/repos/bakerface/fluent-dynamo/badge.svg?branch=master)](https://coveralls.io/r/bakerface/fluent-dynamo)
-
 # fluent-dynamo
 **A fluent interface for Amazon DynamoDB in Node.js**
+
+[![npm version](https://badge.fury.io/js/fluent-dynamo.svg)](http://badge.fury.io/js/fluent-dynamo)
+[![build status](https://travis-ci.org/bakerface/fluent-dynamo.svg?branch=master)](https://travis-ci.org/bakerface/fluent-dynamo)
+[![code climate](https://codeclimate.com/github/bakerface/fluent-dynamo/badges/gpa.svg)](https://codeclimate.com/github/bakerface/fluent-dynamo)
+[![test coverage](https://codeclimate.com/github/bakerface/fluent-dynamo/badges/coverage.svg)](https://codeclimate.com/github/bakerface/fluent-dynamo/coverage)
+[![github issues](https://img.shields.io/github/issues/bakerface/fluent-dynamo.svg)](https://github.com/bakerface/fluent-dynamo/issues)
+[![dependencies](https://david-dm.org/bakerface/fluent-dynamo.svg)](https://david-dm.org/bakerface/fluent-dynamo)
+[![dev dependencies](https://david-dm.org/bakerface/fluent-dynamo/dev-status.svg)](https://david-dm.org/bakerface/fluent-dynamo#info=devDependencies)
+[![downloads](http://img.shields.io/npm/dm/fluent-dynamo.svg)](https://www.npmjs.com/package/fluent-dynamo)
 
 ### dynamo.createTable(table)
 Creates a table with the specified configuration (see [CreateTable](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html)). Below is an example of creating a table with a global secondary index and a local secondary index.

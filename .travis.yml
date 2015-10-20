@@ -1,20 +1,15 @@
 language: node_js
+sudo: false
 
 node_js:
-  - "0.8"
   - "0.10"
   - "0.11"
+  - "0.12"
 
-branches:
-  except:
-    - gh-pages
+env:
+  - CODECLIMATE_REPO_TOKEN=e667d2e372ff362871a8955801a78e05765d4e49fa3ac2958bcd00a9508bdf0f
 
-script:
-  - npm test
+after_success:
+  - npm run-script coverage
+  - npm run-script codeclimate
 
-after_script:
-  - if [[ `node --version` == *v0.10* ]]; then cat ./build/coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js; fi
-
-before_install:
-  # Node v0.8 needs specific NPM version: https://github.com/npm/npm/issues/6246#issuecomment-57911124
-  - if [[ `node --version` == *v0.8* ]]; then npm install -g npm@1.4.28; fi

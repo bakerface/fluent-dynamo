@@ -126,3 +126,50 @@ dynamo.query('Thread')
     // an error occurred
   });
 ```
+
+### dynamo.deleteTable(table)
+Deletes the table (see [DeleteTable](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DeleteTable.html)). Below is an example of deleting a table by name.
+
+``` javascript
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
+
+dynamo.deleteTable('Thread')
+  .then(function() {
+    // the table was deleted
+  })
+  .catch(function(reason) {
+    // an error occurred
+  });
+```
+
+### dynamo.updateItem(table)
+Updates and item in a table (see [UpdateItem](http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateItem.html)). Below is an example of updating an attribute in a table.
+
+``` javascript
+var fluent = require('fluent-dynamo');
+
+var dynamo = fluent()
+  .withAccessKeyId('YOUR_ACCESS_KEY_ID')
+  .withRegion('YOUR_REGION')
+  .withSecretAccessKey('YOUR_SECRET_ACCESS_KEY');
+
+dynamo.updateItem('Thread')
+  .withHashKey('ForumName').asString('Amazon')
+  .withRangeKey('Subject').asString('DynamoDB')
+  .withSetExpression('LastPostedBy').asString('alice@example.com')
+  .withRemoveExpression('Archived')
+  .withCondition('LastPostedBy').isEqualToString('fred@example.com')
+  .withAllNewReturnValues();
+  .then(function() {
+    // the "LastPostedBy" attribute is now "alice@example.com"
+    // and the "Archived" attribute is removed
+  })
+  .catch(function(reason) {
+    // an error occurred
+  });
+```
